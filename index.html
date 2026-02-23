@@ -579,7 +579,7 @@
     <!-- Calculator Container -->
     <div class="container">
         <div class="calculator-wrapper">
-            <form class="form-section" id="compound-form">
+            <form class="form-section" onsubmit="calculateCompound(event)">
                 <!-- Principal Amount -->
                 <div class="input-group">
                     <label for="principal" id="label-principal">סכום התחלתי</label>
@@ -713,104 +713,465 @@
             </div>
         </div>
     </footer>
-	<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script>
-document.addEventListener('DOMContentLoaded', function () {
 
-    let chartInstance = null;
-    let currentLang = 'he';
-
-    const form = document.getElementById('compound-form');
-    const resultsEl = document.getElementById('results');
-
-    form.addEventListener('submit', function (e) {
-        e.preventDefault();
-        calculate();
-    });
-
-    function calculate() {
-        const principal = parseFloat(document.getElementById('principal').value) || 0;
-        const monthly = parseFloat(document.getElementById('monthly').value) || 0;
-        const rate = parseFloat(document.getElementById('rate').value) || 0;
-        const years = parseFloat(document.getElementById('years').value) || 0;
-
-        const annualRate = rate / 100;
-        let balance = principal;
-        let totalContributions = principal;
-
-        const balanceData = [principal];
-        const contributionsData = [principal];
-
-        for (let year = 1; year <= years; year++) {
-            for (let month = 1; month <= 12; month++) {
-                balance += monthly;
-                totalContributions += monthly;
-                balance *= (1 + annualRate / 12);
-            }
-            balanceData.push(balance);
-            contributionsData.push(totalContributions);
-        }
-
-        const finalAmount = balance;
-        const interestEarned = finalAmount - totalContributions;
-
-        document.getElementById('final-amount').textContent = formatNumber(finalAmount);
-        document.getElementById('total-contributions').textContent = formatNumber(totalContributions);
-        document.getElementById('interest-earned').textContent = formatNumber(interestEarned);
-
-        renderChart(balanceData, contributionsData);
-        resultsEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }
-
-    function formatNumber(num) {
-        return new Intl.NumberFormat('he-IL', {
-            maximumFractionDigits: 0
-        }).format(Math.round(num));
-    }
-
-    function renderChart(balanceData, contributionsData) {
-
-        if (!window.Chart) {
-            console.error("Chart.js not loaded");
-            return;
-        }
-
-        const ctx = document.getElementById('growthChart').getContext('2d');
-
-        if (chartInstance) {
-            chartInstance.destroy();
-        }
-
-        chartInstance = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: balanceData.map((_, i) => i),
-                datasets: [
-                    {
-                        label: 'יתרה כוללת',
-                        data: balanceData,
-                        borderColor: 'rgb(59,130,246)',
-                        fill: true,
-                        tension: 0.4
-                    },
-                    {
-                        label: 'סך הפקדות',
-                        data: contributionsData,
-                        borderColor: 'rgb(16,185,129)',
-                        borderDash: [5,5],
-                        fill: false,
-                        tension: 0.4
-                    }
-                ]
+    <script>
+        // תרגומים מתוקנים לכל 4 השפות
+        const translations = {
+            he: {
+                main_title: 'מחשבון ריבית דריבית',
+                label_principal: 'סכום התחלתי',
+                label_monthly: 'הפקדה חודשית',
+                label_rate: 'ריבית שנתית (%)',
+                label_years: 'תקופה (שנים)',
+                calculate_btn: 'חשב',
+                result_final: 'סכום סופי',
+                result_contributions: 'סך הפקדות',
+                result_interest: 'רווח מריבית',
+                chart_start: 'התחלה',
+                chart_principal: 'יתרה כוללת',
+                chart_contributions: 'סך הפקדות',
+                chart_year: 'שנה',
+                explanation_title: 'מה זה ריבית דריבית?',
+                explanation_p1: 'ריבית דריבית היא תופעה פיננסית שבה הריבית שמרוויחים מצטרפת לקרן המקורית, וממשיכה להרוויח ריבית בעצמה. במילים פשוטות - זה "ריבית על הריבית".',
+                explanation_p2: 'בניגוד לריבית פשוטה שמחושבת רק על הסכום המקורי, ריבית דריבית גורמת להשקעה לצמוח בקצב מואץ לאורך זמן. ככל שתקופת ההשקעה ארוכה יותר, כך ההשפעה של הריבית דריבית חזקה יותר.',
+                info_title: 'הידעתם?',
+                info_text: 'אלברט איינשטיין כינה את הריבית דריבית כפלא השמיני בתבל - מי שמבין זאת, מרוויח. מי שלא - משלם.',
+                footer_about_title: 'אודות',
+                footer_about_text: 'מחשבון ריבית דריבית מתקדם המאפשר לכם לחשב בקלות את התשואה הצפויה על ההשקעות שלכם ולתכנן את העתיד הפיננסי שלכם.',
+                footer_disclaimer_title: 'הצהרת אחריות',
+                footer_disclaimer_text: 'המידע והכלים באתר זה הם למטרות חינוכיות בלבד ואינם מהווים ייעוץ פיננסי, השקעתי או מקצועי. תמיד התייעצו עם יועץ פיננסי מוסמך.',
+                footer_terms_title: 'תנאי שימוש',
+                footer_terms_li1: 'השימוש באתר הוא על אחריותכם הבלבדית',
+                footer_terms_li2: 'החישובים מבוססים על הנתונים שהזנתם',
+                footer_terms_li3: 'התוצאות הן הערכות בלבד',
+                footer_terms_li4: 'איננו אחראים להחלטות השקעה',
+                footer_copyright: '© 2026 מחשבון ריבית דריבית. כל הזכויות שמורות.',
+                footer_privacy: 'מדיניות פרטיות: אנחנו לא אוספים או שומרים מידע אישי. כל החישובים נעשים בדפדפן שלכם.'
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false
+            en: {
+                main_title: 'Compound Interest Calculator',
+                label_principal: 'Initial Amount',
+                label_monthly: 'Monthly Contribution',
+                label_rate: 'Annual Interest Rate (%)',
+                label_years: 'Time Period (Years)',
+                calculate_btn: 'Calculate',
+                result_final: 'Final Amount',
+                result_contributions: 'Total Contributions',
+                result_interest: 'Interest Earned',
+                chart_start: 'Start',
+                chart_principal: 'Total Balance',
+                chart_contributions: 'Total Contributions',
+                chart_year: 'Year',
+                explanation_title: 'What is Compound Interest?',
+                explanation_p1: 'Compound interest is a financial phenomenon where the interest earned is added to the principal amount and continues to earn interest itself. In simple terms - it\'s "interest on interest."',
+                explanation_p2: 'Unlike simple interest, which is calculated only on the original amount, compound interest causes investments to grow at an accelerated rate over time. The longer the investment period, the stronger the effect of compound interest.',
+                info_title: 'Did You Know?',
+                info_text: 'Albert Einstein called compound interest the eighth wonder of the world - those who understand it, earn. Those who don\'t, pay.',
+                footer_about_title: 'About',
+                footer_about_text: 'An advanced compound interest calculator that allows you to easily calculate the expected return on your investments and plan your financial future.',
+                footer_disclaimer_title: 'Disclaimer',
+                footer_disclaimer_text: 'The information and tools on this site are for educational purposes only and do not constitute financial, investment, or professional advice. Always consult with a licensed financial advisor.',
+                footer_terms_title: 'Terms of Use',
+                footer_terms_li1: 'Use of the site is at your own risk',
+                footer_terms_li2: 'Calculations are based on data you entered',
+                footer_terms_li3: 'Results are estimates only',
+                footer_terms_li4: 'We are not responsible for investment decisions',
+                footer_copyright: '© 2026 Compound Interest Calculator. All rights reserved.',
+                footer_privacy: 'Privacy Policy: We do not collect or store personal information. All calculations are performed in your browser.'
+            },
+            es: {
+                main_title: 'Calculadora de Interés Compuesto',
+                label_principal: 'Cantidad Inicial',
+                label_monthly: 'Aportación Mensual',
+                label_rate: 'Tasa de Interés Anual (%)',
+                label_years: 'Período de Tiempo (Años)',
+                calculate_btn: 'Calcular',
+                result_final: 'Cantidad Final',
+                result_contributions: 'Contribuciones Totales',
+                result_interest: 'Interés Ganado',
+                chart_start: 'Inicio',
+                chart_principal: 'Saldo Total',
+                chart_contributions: 'Contribuciones Totales',
+                chart_year: 'Año',
+                explanation_title: '¿Qué es el Interés Compuesto?',
+                explanation_p1: 'El interés compuesto es un fenómeno financiero donde el interés ganado se suma al monto principal y continúa ganando interés por sí mismo. En términos simples: es "interés sobre interés".',
+                explanation_p2: 'A diferencia del interés simple, que se calcula solo sobre la cantidad original, el interés compuesto hace que las inversiones crezcan a un ritmo acelerado con el tiempo. Cuanto más largo sea el período de inversión, más fuerte será el efecto del interés compuesto.',
+                info_title: '¿Sabías Que?',
+                info_text: 'Albert Einstein llamó al interés compuesto la octava maravilla del mundo - quienes lo entienden, ganan. Quienes no, pagan.',
+                footer_about_title: 'Acerca de',
+                footer_about_text: 'Una calculadora avanzada de interés compuesto que te permite calcular fácilmente el rendimiento esperado de tus inversiones y planificar tu futuro financiero.',
+                footer_disclaimer_title: 'Aviso Legal',
+                footer_disclaimer_text: 'La información y herramientas en este sitio son solo con fines educativos y no constituyen asesoramiento financiero, de inversión o profesional. Siempre consulte con un asesor financiero autorizado.',
+                footer_terms_title: 'Términos de Uso',
+                footer_terms_li1: 'El uso del sitio es bajo su propio riesgo',
+                footer_terms_li2: 'Los cálculos se basan en los datos que ingresó',
+                footer_terms_li3: 'Los resultados son solo estimaciones',
+                footer_terms_li4: 'No somos responsables de las decisiones de inversión',
+                footer_copyright: '© 2026 Calculadora de Interés Compuesto. Todos los derechos reservados.',
+                footer_privacy: 'Política de Privacidad: No recopilamos ni almacenamos información personal. Todos los cálculos se realizan en su navegador.'
+            },
+            ar: {
+                main_title: 'حاسبة الفائدة المركبة',
+                label_principal: 'المبلغ الأولي',
+                label_monthly: 'المساهمة الشهرية',
+                label_rate: 'معدل الفائدة السنوي (%)',
+                label_years: 'الفترة الزمنية (بالسنوات)',
+                calculate_btn: 'احسب',
+                result_final: 'المبلغ النهائي',
+                result_contributions: 'إجمالي المساهمات',
+                result_interest: 'الفائدة المكتسبة',
+                chart_start: 'البداية',
+                chart_principal: 'الرصيد الإجمالي',
+                chart_contributions: 'إجمالي المساهمات',
+                chart_year: 'السنة',
+                explanation_title: 'ما هي الفائدة المركبة؟',
+                explanation_p1: 'الفائدة المركبة هي ظاهرة مالية حيث تُضاف الفائدة المكتسبة إلى المبلغ الأصلي وتستمر في كسب الفائدة بنفسها. ببساطة - إنها "فائدة على الفائدة".',
+                explanation_p2: 'على عكس الفائدة البسيطة، التي تُحسب فقط على المبلغ الأصلي، فإن الفائدة المركبة تجعل الاستثمارات تنمو بمعدل متسارع مع مرور الوقت. كلما طالت فترة الاستثمار، كان تأثير الفائدة المركبة أقوى.',
+                info_title: 'هل تعلم؟',
+                info_text: 'أطلق ألبرت أينشتاين على الفائدة المركبة أعجوبة العالم الثامنة - من يفهمها يربح، ومن لا يفهمها يدفع.',
+                footer_about_title: 'حول',
+                footer_about_text: 'حاسبة متقدمة للفائدة المركبة تتيح لك حساب العائد المتوقع على استثماراتك بسهولة والتخطيط لمستقبلك المالي.',
+                footer_disclaimer_title: 'إخلاء المسؤولية',
+                footer_disclaimer_text: 'المعلومات والأدوات الموجودة على هذا الموقع هي لأغراض تعليمية فقط ولا تشكل نصيحة مالية أو استثمارية أو مهنية. استشر دائمًا مستشارًا ماليًا مرخصًا.',
+                footer_terms_title: 'شروط الاستخدام',
+                footer_terms_li1: 'استخدام الموقع على مسؤوليتك الخاصة',
+                footer_terms_li2: 'الحسابات تعتمد على البيانات التي أدخلتها',
+                footer_terms_li3: 'النتائج هي تقديرات فقط',
+                footer_terms_li4: 'نحن غير مسؤولين عن قرارات الاستثمار',
+                footer_copyright: '© 2026 حاسبة الفائدة المركبة. جميع الحقوق محفوظة.',
+                footer_privacy: 'سياسة الخصوصية: نحن لا نجمع أو نخزن معلومات شخصية. يتم إجراء جميع الحسابات في متصفحك.'
             }
-        });
-    }
+        };
 
-});
-</script>
+        let currentLang = 'he';
+        let chartInstance = null;
+
+        // פונקציה להחלפת שפה
+        function switchLanguage(lang) {
+            currentLang = lang;
+            const t = translations[lang];
+            
+            // עדכון כיוון הטקסט
+            const body = document.body;
+            if (lang === 'he' || lang === 'ar') {
+                body.setAttribute('dir', 'rtl');
+            } else {
+                body.setAttribute('dir', 'ltr');
+            }
+            body.setAttribute('lang', lang);
+            
+            // עדכון כל הטקסטים
+            document.getElementById('main-title').textContent = t.main_title;
+            document.getElementById('label-principal').textContent = t.label_principal;
+            document.getElementById('label-monthly').textContent = t.label_monthly;
+            document.getElementById('label-rate').textContent = t.label_rate;
+            document.getElementById('label-years').textContent = t.label_years;
+            document.getElementById('calculate-btn').textContent = t.calculate_btn;
+            document.getElementById('result-label-final').textContent = t.result_final;
+            document.getElementById('result-label-contributions').textContent = t.result_contributions;
+            document.getElementById('result-label-interest').textContent = t.result_interest;
+            document.getElementById('explanation-title').textContent = t.explanation_title;
+            document.getElementById('explanation-p1').textContent = t.explanation_p1;
+            document.getElementById('explanation-p2').textContent = t.explanation_p2;
+            document.getElementById('info-title').textContent = t.info_title;
+            document.getElementById('info-text').textContent = t.info_text;
+            document.getElementById('footer-about-title').textContent = t.footer_about_title;
+            document.getElementById('footer-about-text').textContent = t.footer_about_text;
+            document.getElementById('footer-disclaimer-title').textContent = t.footer_disclaimer_title;
+            document.getElementById('footer-disclaimer-text').textContent = t.footer_disclaimer_text;
+            document.getElementById('footer-terms-title').textContent = t.footer_terms_title;
+            document.getElementById('footer-terms-li1').textContent = t.footer_terms_li1;
+            document.getElementById('footer-terms-li2').textContent = t.footer_terms_li2;
+            document.getElementById('footer-terms-li3').textContent = t.footer_terms_li3;
+            document.getElementById('footer-terms-li4').textContent = t.footer_terms_li4;
+            document.getElementById('footer-copyright').textContent = t.footer_copyright;
+            document.getElementById('footer-privacy').textContent = t.footer_privacy;
+            
+            // עדכון כפתורי השפה
+            document.querySelectorAll('.lang-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.getAttribute('data-lang') === lang) {
+                    btn.classList.add('active');
+                }
+            });
+            
+            // עדכון הגרף אם יש נתונים
+            if (chartInstance && chartInstance.data.labels.length > 0) {
+                updateChart(chartInstance.data.datasets[0].data, chartInstance.data.datasets[1].data);
+            } else {
+                updateChart([], []);
+            }
+        }
+
+        // פונקציה לחישוב ריבית דריבית - עם חישוב שנתי תקין
+        function calculateCompound(event) {
+            event.preventDefault();
+            
+            // קריאת ערכים - אם ריק אז 0
+            const principal = parseFloat(document.getElementById('principal').value) || 0;
+            const monthly = parseFloat(document.getElementById('monthly').value) || 0;
+            const rate = parseFloat(document.getElementById('rate').value) || 0;
+            const years = parseFloat(document.getElementById('years').value) || 0;
+            
+            // חישוב עם ריבית שנתית תקינה
+            const annualRate = rate / 100;
+            
+            let balance = principal;
+            let totalContributions = principal;
+            const balanceData = [principal];
+            const contributionsData = [principal];
+            
+            // חישוב לכל שנה
+            for (let year = 1; year <= years; year++) {
+                // הוספת הפקדות חודשיות לאורך השנה + ריבית
+                for (let month = 1; month <= 12; month++) {
+                    balance += monthly;
+                    totalContributions += monthly;
+                    // ריבית חודשית (1/12 מהשנה)
+                    balance = balance * (1 + annualRate / 12);
+                }
+                
+                balanceData.push(balance);
+                contributionsData.push(totalContributions);
+            }
+            
+            const finalAmount = balance;
+            const interestEarned = finalAmount - totalContributions;
+            
+            // עדכון התוצאות
+            document.getElementById('final-amount').textContent = formatNumber(finalAmount);
+            document.getElementById('total-contributions').textContent = formatNumber(totalContributions);
+            document.getElementById('interest-earned').textContent = formatNumber(interestEarned);
+            
+            // עדכון הגרף
+            updateChart(balanceData, contributionsData);
+            
+            // גלילה חלקה לתוצאות
+            setTimeout(() => {
+                document.getElementById('results').scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'nearest'
+                });
+            }, 100);
+        }
+
+        // פונקציה לעיצוב מספרים
+        function formatNumber(num) {
+            return new Intl.NumberFormat(currentLang === 'ar' ? 'ar' : currentLang === 'he' ? 'he-IL' : currentLang === 'es' ? 'es-ES' : 'en-US', {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            }).format(Math.round(num));
+        }
+
+        // פונקציה לעדכון הגרף
+        function updateChart(balanceData, contributionsData) {
+            const ctx = document.getElementById('growthChart').getContext('2d');
+            const t = translations[currentLang];
+            
+            // אם אין נתונים - גרף ריק עם צירים
+            if (balanceData.length === 0 || balanceData.every(val => val === 0)) {
+                if (chartInstance) {
+                    chartInstance.destroy();
+                }
+                chartInstance = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: [],
+                        datasets: []
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        },
+                        scales: {
+                            x: {
+                                grid: {
+                                    display: true,
+                                    color: 'rgba(0, 0, 0, 0.08)',
+                                    lineWidth: 1
+                                },
+                                border: {
+                                    display: true,
+                                    color: 'rgba(0, 0, 0, 0.2)',
+                                    width: 2
+                                },
+                                ticks: {
+                                    display: false
+                                }
+                            },
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    display: false
+                                },
+                                grid: {
+                                    display: true,
+                                    color: 'rgba(0, 0, 0, 0.08)',
+                                    lineWidth: 1
+                                },
+                                border: {
+                                    display: true,
+                                    color: 'rgba(0, 0, 0, 0.2)',
+                                    width: 2
+                                }
+                            }
+                        }
+                    }
+                });
+                return;
+            }
+            
+            // יצירת תוויות
+            const labels = balanceData.map((_, index) => 
+                index === 0 ? t.chart_start : `${t.chart_year} ${index}`
+            );
+
+            if (chartInstance) {
+                chartInstance.destroy();
+            }
+
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: t.chart_principal,
+                            data: balanceData,
+                            borderColor: 'rgb(59, 130, 246)',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 4,
+                            pointHoverRadius: 6
+                        },
+                        {
+                            label: t.chart_contributions,
+                            data: contributionsData,
+                            borderColor: 'rgb(16, 185, 129)',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            borderWidth: 2,
+                            fill: false,
+                            tension: 0.4,
+                            pointRadius: 3,
+                            pointHoverRadius: 5,
+                            borderDash: [5, 5]
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            align: 'end',
+                            rtl: (currentLang === 'he' || currentLang === 'ar'),
+                            labels: {
+                                font: {
+                                    family: currentLang === 'ar' ? 'Cairo' : 
+                                           currentLang === 'he' ? 'IBM Plex Sans Arabic' : 'Inter',
+                                    size: 13,
+                                    weight: '600'
+                                },
+                                padding: 15,
+                                usePointStyle: true,
+                                pointStyle: 'circle',
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            titleFont: {
+                                family: currentLang === 'ar' ? 'Cairo' : 
+                                       currentLang === 'he' ? 'IBM Plex Sans Arabic' : 'Inter',
+                                size: 14,
+                                weight: 'bold'
+                            },
+                            bodyFont: {
+                                family: currentLang === 'ar' ? 'Cairo' : 
+                                       currentLang === 'he' ? 'IBM Plex Sans Arabic' : 'Inter',
+                                size: 13
+                            },
+                            padding: 12,
+                            cornerRadius: 8,
+                            displayColors: true,
+                            rtl: (currentLang === 'he' || currentLang === 'ar'),
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ' + formatNumber(context.parsed.y);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                font: {
+                                    family: currentLang === 'ar' ? 'Cairo' : 
+                                           currentLang === 'he' ? 'IBM Plex Sans Arabic' : 'Inter',
+                                    size: 12
+                                }
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            },
+                            ticks: {
+                                font: {
+                                    family: currentLang === 'ar' ? 'Cairo' : 
+                                           currentLang === 'he' ? 'IBM Plex Sans Arabic' : 'Inter',
+                                    size: 12
+                                },
+                                callback: function(value) {
+                                    return formatNumber(value);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // אתחול בטעינת העמוד
+        window.addEventListener('load', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const langParam = urlParams.get('lang');
+            
+            if (langParam && translations[langParam]) {
+                switchLanguage(langParam);
+            } else {
+                switchLanguage('he');
+            }
+            
+            // הצגת גרף ריק עם צירים
+            updateChart([], []);
+        });
+
+        // הוספת מאזינים לכפתורי השפה
+        document.querySelectorAll('.lang-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const lang = this.getAttribute('data-lang');
+                switchLanguage(lang);
+            });
+        });
+    </script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </body>
 </html>
